@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สมัครสมาชิก</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        input {
+            padding: 10px;
+            margin: 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #d32f2f;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #b71c1c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>สมัครสมาชิก</h2>
+        <input type="email" id="email" placeholder="อีเมล">
+        <input type="password" id="password" placeholder="รหัสผ่าน">
+        <button id="registerBtn">สมัครสมาชิก</button>
+        <p>มีบัญชีแล้ว? <a href="login.html">เข้าสู่ระบบ</a></p>
+    </div>
+
+    <!-- ✅ โหลด Firebase SDK ✅ -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // ✅ ตรวจสอบ Firebase โหลดสำเร็จหรือไม่
+        if (typeof firebase === "undefined") {
+            console.error("❌ Firebase SDK failed to load.");
+        } else {
+            console.log("✅ Firebase SDK loaded successfully.");
+        }
+
+        // ✅ กำหนดค่า Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzVMVLZLs14R2iMU_WeDxjRWuFBf-M55k",
+            authDomain: "fakenewschecker-e9f1c.firebaseapp.com",
+            projectId: "fakenewschecker-e9f1c",
+            storageBucket: "fakenewschecker-e9f1c.appspot.com",
+            messagingSenderId: "1074286623021",
+            appId: "1:1074286623021:web:8fce1b76c51469091dfba4",
+        };
+
+        // ✅ ตรวจสอบและเริ่มต้น Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // ✅ ฟังก์ชันสมัครสมาชิก
+        document.getElementById("registerBtn").addEventListener("click", function () {
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value.trim();
+
+            if (!email || !password) {
+                alert("❌ กรุณากรอกอีเมลและรหัสผ่าน");
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    const user = userCredential.user;
+                    console.log("✅ สมัครสมาชิกสำเร็จ", user);
+
+                    // ✅ บันทึกข้อมูลผู้ใช้ใน Firestore
+                    return db.collection("users").doc(user.uid).set({
+                        email: email,
+                        role: "user", // ค่าเริ่มต้นเป็น user
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    alert("✅ สมัครสมาชิกสำเร็จ! โปรดเข้าสู่ระบบ");
+                    window.location.href = "login.html"; // ไปหน้า Login
+                })
+                .catch(error => {
+                    if (error.code === "auth/email-already-in-use") {
+                        alert("⚠️ อีเมลนี้ถูกใช้งานแล้ว โปรดเข้าสู่ระบบแทน");
+                        window.location.href = "login.html"; // ถ้ามีบัญชีแล้ว ให้ไปหน้า Login
+                    } else {
+                        console.error("❌ สมัครสมาชิกล้มเหลว:", error.message);
+                        alert("❌ สมัครสมาชิกล้มเหลว: " + error.message);
+                    }
+                });
+        });
+    </script>
+</body>
+</html>

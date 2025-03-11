@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        input {
+            padding: 10px;
+            margin: 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #d32f2f;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #b71c1c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>เข้าสู่ระบบ</h2>
+        <input type="email" id="email" placeholder="อีเมล">
+        <input type="password" id="password" placeholder="รหัสผ่าน">
+        <button id="loginBtn">ล็อกอิน</button>
+        <p>ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิก</a></p>
+    </div>
+
+    <!-- ✅ โหลด Firebase SDK ✅ -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // ✅ ตรวจสอบ Firebase โหลดสำเร็จหรือไม่
+        if (typeof firebase === "undefined") {
+            console.error("❌ Firebase SDK failed to load.");
+        } else {
+            console.log("✅ Firebase SDK loaded successfully.");
+        }
+
+        // ✅ กำหนดค่า Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzVMVLZLs14R2iMU_WeDxjRWuFBf-M55k",
+            authDomain: "fakenewschecker-e9f1c.firebaseapp.com",
+            projectId: "fakenewschecker-e9f1c",
+            storageBucket: "fakenewschecker-e9f1c.appspot.com",
+            messagingSenderId: "1074286623021",
+            appId: "1:1074286623021:web:8fce1b76c51469091dfba4",
+        };
+
+        // ✅ ตรวจสอบและเริ่มต้น Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // ✅ ฟังก์ชันเข้าสู่ระบบ
+        document.getElementById("loginBtn").addEventListener("click", function () {
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value.trim();
+
+            if (!email || !password) {
+                alert("❌ กรุณากรอกอีเมลและรหัสผ่าน");
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    const user = userCredential.user;
+                    console.log("✅ เข้าสู่ระบบสำเร็จ", user);
+
+                    // ✅ ตรวจสอบว่าเป็นแอดมินหรือไม่
+                    db.collection("users").doc(user.uid).get().then(doc => {
+                        if (doc.exists && doc.data().role === "admin") {
+                            alert("✅ เข้าสู่ระบบสำเร็จ (แอดมิน)");
+                            window.location.href = "admin.html"; // ไปหน้า Admin
+                        } else {
+                            alert("✅ เข้าสู่ระบบสำเร็จ");
+                            window.location.href = "index.html"; // ไปหน้า Index
+                        }
+                    }).catch(error => {
+                        console.error("❌ Error checking user role:", error);
+                    });
+                })
+                .catch(error => {
+                    console.error("❌ ล็อกอินล้มเหลว:", error.message);
+                    alert("❌ ล็อกอินล้มเหลว: " + error.message);
+                });
+        });
+    </script>
+</body>
+</html>

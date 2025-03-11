@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Checker - ส่งข่าว</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- ✅ โหลด Firebase SDK ที่ถูกต้อง ✅ -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <style>
+        body { background-color: #f4f4f4; color: #333; font-family: 'Arial', sans-serif; padding-top: 50px; }
+        .card { background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .card-header { background-color: #b71c1c; color: white; text-align: center; font-size: 1.5rem; font-weight: bold; }
+        .container { max-width: 600px; }
+        .btn-primary { background-color: #b71c1c; border: none; }
+        .btn-primary:hover { background-color: #9a1a17; }
+    </style>
+</head>
+<body>
+
+    <div class="container d-flex justify-content-center align-items-center" style="height: 100vh;">
+        <div class="card" style="width: 100%; max-width: 500px;">
+            <div class="card-header">
+                <h4>ส่งข่าวให้แอดมินตรวจสอบ</h4>
+            </div>
+            <div class="card-body">
+                <form id="submitNewsForm">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">หัวข้อข่าว</label>
+                        <input type="text" class="form-control" id="title" placeholder="กรอกหัวข้อข่าว" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">รายละเอียดข่าว</label>
+                        <textarea class="form-control" id="description" placeholder="กรอกรายละเอียดข่าว" rows="4" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="image" class="form-label">อัปโหลดภาพข่าว</label>
+                        <input type="file" class="form-control" id="image" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="url" class="form-label">ลิงก์ข่าว</label>
+                        <input type="url" class="form-control" id="url" placeholder="กรอกลิงก์ข่าว" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">ส่งข่าว</button>
+                </form>
+                <button onclick="window.location.href='index.html'" class="btn btn-secondary w-100 mt-3">กลับหน้าหลัก</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ✅ ตรวจสอบ Firebase โหลดสำเร็จหรือไม่
+        if (typeof firebase === "undefined") {
+            console.error("❌ Firebase SDK failed to load.");
+        } else {
+            console.log("✅ Firebase SDK loaded successfully.");
+        }
+
+        // ✅ กำหนดค่า Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzVMVLZLs14R2iMU_WeDxjRWuFBf-M55k",
+            authDomain: "fakenewschecker-e9f1c.firebaseapp.com",
+            projectId: "fakenewschecker-e9f1c",
+            storageBucket: "fakenewschecker-e9f1c.appspot.com",
+            messagingSenderId: "1074286623021",
+            appId: "1:1074286623021:web:8fce1b76c51469091dfba4",
+        };
+
+        // ✅ ตรวจสอบและเริ่มต้น Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const auth = firebase.auth();
+        const storage = firebase.storage();
+        const db = firebase.firestore();
+
+        // ✅ ฟังก์ชันตรวจสอบการล็อกอินก่อนส่งข่าว
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                alert("❌ กรุณาเข้าสู่ระบบก่อนส่งข่าว");
+                window.location.href = "login.html";
+            }
+        });
+
+        // ✅ ฟังก์ชันจัดการการส่งข่าว
+        document.getElementById('submitNewsForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const url = document.getElementById('url').value;
+            const file = document.getElementById('image').files[0];
+
+            if (!file) {
+                alert("❌ กรุณาเลือกไฟล์รูปภาพก่อนส่งข่าว!");
+                return;
+            }
+
+            const storageRef = storage.ref('news_images/' + file.name);
+            storageRef.put(file).then((snapshot) => {
+                return snapshot.ref.getDownloadURL();
+            }).then((imageUrl) => {
+                return db.collection('pending_news').add({
+                    title: title,
+                    description: description,
+                    imageUrl: imageUrl,
+                    url: url,
+                    approved: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId: auth.currentUser ? auth.currentUser.uid : "unknown",
+                });
+            }).then(() => {
+                alert('✅ ข่าวของคุณได้ถูกส่งไปยังแอดมินแล้ว!');
+                window.location.href = 'index.html';
+            }).catch((error) => {
+                console.error("❌ Error:", error);
+                alert("❌ เกิดข้อผิดพลาด: " + error.message);
+            });
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Fake News Checker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- ✅ โหลด Firebase SDK ✅ -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { margin-top: 30px; }
+        .card { margin-bottom: 20px; }
+        .btn-approve { background-color: #28a745; color: white; }
+        .btn-reject { background-color: #dc3545; color: white; }
+        .btn-logout { background-color: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2 class="text-center my-4">🛠 ระบบจัดการข่าวปลอม (Admin)</h2>
+        <button id="logoutBtn" class="btn btn-logout mb-3">🚪 ออกจากระบบ</button>
+        <div class="row" id="newsContainer"></div>
+    </div>
+
+    <script>
+        // ✅ Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzVMVLZLs14R2iMU_WeDxjRWuFBf-M55k",
+            authDomain: "fakenewschecker-e9f1c.firebaseapp.com",
+            projectId: "fakenewschecker-e9f1c",
+            storageBucket: "fakenewschecker-e9f1c.appspot.com",
+            messagingSenderId: "1074286623021",
+            appId: "1:1074286623021:web:8fce1b76c51469091dfba4",
+        };
+
+        // ✅ เริ่มต้น Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // ✅ ตรวจสอบว่าเป็นแอดมินหรือไม่
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                db.collection("users").doc(user.uid).get().then(doc => {
+                    if (doc.exists && doc.data().role === "admin") {
+                        loadPendingNews(); // โหลดข่าวที่รอการตรวจสอบ
+                    } else {
+                        alert("❌ คุณไม่มีสิทธิ์เข้าถึงหน้านี้!");
+                        window.location.href = "index.html";
+                    }
+                }).catch(error => {
+                    console.error("❌ Error:", error);
+                });
+            } else {
+                window.location.href = "login.html"; // ถ้ายังไม่ล็อกอิน ให้ไปล็อกอินก่อน
+            }
+        });
+
+        // ✅ โหลดข่าวที่รอการตรวจสอบ
+        function loadPendingNews() {
+            const newsContainer = document.getElementById("newsContainer");
+            newsContainer.innerHTML = "";
+            
+            db.collection("pending_news").orderBy("createdAt", "desc").get()
+                .then(snapshot => {
+                    snapshot.forEach(doc => {
+                        const news = doc.data();
+                        newsContainer.innerHTML += `
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <img src="${news.imageUrl}" class="card-img-top">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${news.title}</h5>
+                                        <p class="card-text">${news.description.substring(0, 100)}...</p>
+                                        <a href="${news.url}" class="btn btn-info" target="_blank">🔗 อ่านเพิ่มเติม</a>
+                                        <button class="btn btn-approve" onclick="approveNews('${doc.id}')">✅ อนุมัติ</button>
+                                        <button class="btn btn-reject" onclick="deleteNews('${doc.id}')">❌ ลบ</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                })
+                .catch(error => console.error("❌ Error fetching news:", error));
+        }
+
+        // ✅ อนุมัติข่าว
+        function approveNews(newsId) {
+            db.collection("pending_news").doc(newsId).get().then(doc => {
+                if (doc.exists) {
+                    const newsData = doc.data();
+                    db.collection("verified_news").doc(newsId).set({
+                        title: newsData.title,
+                        description: newsData.description,
+                        imageUrl: newsData.imageUrl,
+                        url: newsData.url,
+                        approved: true,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        db.collection("pending_news").doc(newsId).delete();
+                        alert("✅ อนุมัติข่าวเรียบร้อย!");
+                        loadPendingNews();
+                    });
+                }
+            }).catch(error => console.error("❌ Error approving news:", error));
+        }
+
+        // ✅ ลบข่าว
+        function deleteNews(newsId) {
+            if (confirm("❗ คุณแน่ใจหรือไม่ว่าต้องการลบข่าวนี้?")) {
+                db.collection("pending_news").doc(newsId).delete()
+                    .then(() => {
+                        alert("🗑 ข่าวถูกลบแล้ว");
+                        loadPendingNews();
+                    })
+                    .catch(error => console.error("❌ Error deleting news:", error));
+            }
+        }
+
+        // ✅ ออกจากระบบ
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            auth.signOut().then(() => {
+                alert("🚪 ออกจากระบบเรียบร้อย");
+                window.location.href = "login.html";
+            });
+        });
+    </script>
+
+</body>
+</html>
