@@ -1,0 +1,9 @@
+[
+  {
+    "title": "ข่าวปลอมที่ถูกตรวจสอบแล้ว",
+    "description": "รายละเอียดของข่าว",
+    "imageUrl": "https://your-image-url.com",
+    "url": "https://your-news-url.com",
+    "approved": true
+  }
+]
