@@ -6,7 +6,7 @@
     <title>Admin - Fake News Checker</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- ✅ โหลด Firebase SDK ✅ -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -21,7 +21,6 @@
     </style>
 </head>
 <body>
-
     <div class="container">
         <h2 class="text-center my-4">🛠 ระบบจัดการข่าวปลอม (Admin)</h2>
         <button id="logoutBtn" class="btn btn-logout mb-3">🚪 ออกจากระบบ</button>
@@ -29,29 +28,28 @@
     </div>
 
     <script>
-        // ✅ Firebase Configuration
+        // Firebase Configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyBzVMVLZLs14R2iMU_WeDxjRWuFBf-M55k",
-            authDomain: "fakenewschecker-e9f1c.firebaseapp.com",
-            projectId: "fakenewschecker-e9f1c",
-            storageBucket: "fakenewschecker-e9f1c.appspot.com",
-            messagingSenderId: "1074286623021",
-            appId: "1:1074286623021:web:8fce1b76c51469091dfba4",
-        };
+                apiKey: "AIzaSyBzVMVLZLs14R2iMU_WeDxjRWuFBf-M55k",
+                authDomain: "fakenewschecker-e9f1c.firebaseapp.com",
+                projectId: "fakenewschecker-e9f1c",
+                storageBucket: "fakenewschecker-e9f1c.firebasestorage.app",
+                messagingSenderId: "1074286623021",
+                appId: "1:1074286623021:web:8fce1b76c51469091dfba4",
+            };
 
-        // ✅ เริ่มต้น Firebase
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // ✅ ตรวจสอบว่าเป็นแอดมินหรือไม่
+        // ตรวจสอบว่าเป็นแอดมินหรือไม่
         auth.onAuthStateChanged(user => {
             if (user) {
                 db.collection("users").doc(user.uid).get().then(doc => {
                     if (doc.exists && doc.data().role === "admin") {
-                        loadPendingNews(); // โหลดข่าวที่รอการตรวจสอบ
+                        loadPendingNews();
                     } else {
                         alert("❌ คุณไม่มีสิทธิ์เข้าถึงหน้านี้!");
                         window.location.href = "index.html";
@@ -60,11 +58,11 @@
                     console.error("❌ Error:", error);
                 });
             } else {
-                window.location.href = "login.html"; // ถ้ายังไม่ล็อกอิน ให้ไปล็อกอินก่อน
+                window.location.href = "login.html";
             }
         });
 
-        // ✅ โหลดข่าวที่รอการตรวจสอบ
+        // โหลดข่าวที่รอการตรวจสอบ
         function loadPendingNews() {
             const newsContainer = document.getElementById("newsContainer");
             newsContainer.innerHTML = "";
@@ -76,7 +74,7 @@
                         newsContainer.innerHTML += `
                             <div class="col-md-4">
                                 <div class="card">
-                                    <img src="${news.imageUrl}" class="card-img-top">
+                                    <img src="${news.imageUrl}" class="card-img-top" alt="News Image">
                                     <div class="card-body">
                                         <h5 class="card-title">${news.title}</h5>
                                         <p class="card-text">${news.description.substring(0, 100)}...</p>
@@ -92,7 +90,7 @@
                 .catch(error => console.error("❌ Error fetching news:", error));
         }
 
-        // ✅ อนุมัติข่าว
+        // อนุมัติข่าว
         function approveNews(newsId) {
             db.collection("pending_news").doc(newsId).get().then(doc => {
                 if (doc.exists) {
@@ -113,7 +111,7 @@
             }).catch(error => console.error("❌ Error approving news:", error));
         }
 
-        // ✅ ลบข่าว
+        // ลบข่าว
         function deleteNews(newsId) {
             if (confirm("❗ คุณแน่ใจหรือไม่ว่าต้องการลบข่าวนี้?")) {
                 db.collection("pending_news").doc(newsId).delete()
@@ -125,7 +123,7 @@
             }
         }
 
-        // ✅ ออกจากระบบ
+        // ออกจากระบบ
         document.getElementById("logoutBtn").addEventListener("click", () => {
             auth.signOut().then(() => {
                 alert("🚪 ออกจากระบบเรียบร้อย");
@@ -133,6 +131,5 @@
             });
         });
     </script>
-
 </body>
 </html>
